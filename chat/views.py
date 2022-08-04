@@ -28,7 +28,7 @@ class ChatListView(generics.ListAPIView):
                 models.When(is_group=False, then=User.objects.exclude(
                     id=self.request.user.id).filter(chat__title=models.OuterRef('title')).values('avatar')[:1]),
                 default=models.Value('None image'),
-                output_field=models.FloatField()
+                output_field=models.CharField()
             ),
             # profile title
             profile_title=models.Case(
@@ -42,6 +42,16 @@ class ChatListView(generics.ListAPIView):
                 models.When(unmuted=self.request.user, then=True),
                 default=False,
                 output_field=models.BooleanField()
-            )
+            ),
+            is_pinned=models.Case(
+                models.When(pinned=self.request.user, then=True),
+                default=False,
+                output_field=models.BooleanField()
+            ),
+            is_read=models.Case(
+                models.When(messages__read=self.request.user, then=True),
+                default=False,
+                output_field=models.BooleanField()
+            ),
 
-        )
+        ).order_by("-messages__created_at").order_by("-is_pinned")
